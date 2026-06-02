@@ -1,0 +1,32 @@
+{
+  "name": "home-en",
+  "route": "/en",
+  "description": "Validate the Sothema homepage in English: HTTP 200 and logo visibility",
+  "priority": "high",
+  "locale": "en",
+  "features": ["homepage", "logo", "navigation"],
+  "testCases": [
+    {
+      "name": "should return HTTP 200 for English homepage",
+      "steps": [
+        "Send GET request to /en",
+        "Assert response status is 200"
+      ],
+      "assertions": [
+        "Response status is 200"
+      ]
+    },
+    {
+      "name": "should display the logo on English homepage",
+      "steps": [
+        "Navigate to /en",
+        "Wait for network idle",
+        "Handle cookie consent overlay if present",
+        "Assert logo element is visible"
+      ],
+      "assertions": [
+        "Logo image or SVG is visible in the header"
+      ]
+    }
+  ]
+}

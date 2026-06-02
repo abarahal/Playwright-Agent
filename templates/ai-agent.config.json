@@ -1,0 +1,12 @@
+{
+  "forms": {
+    "keywords": ["contact", "reclamation", "formulaire", "inscription", "candidature"]
+  },
+  "sandbox": {
+    "baseUrl": "http://host.docker.internal:3000",
+    "playwrightConfig": "playwright.sandbox.config.js",
+    "reportsDir": "tests/reports",
+    "dockerImage": "playwright-sandbox:1.60.0",
+    "timeout": 300000
+  }
+}

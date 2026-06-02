@@ -1,0 +1,32 @@
+{
+  "name": "home-ar",
+  "route": "/ar",
+  "description": "Validate the Sothema homepage in Arabic: HTTP 200 and logo visibility",
+  "priority": "high",
+  "locale": "ar",
+  "features": ["homepage", "logo", "navigation"],
+  "testCases": [
+    {
+      "name": "should return HTTP 200 for Arabic homepage",
+      "steps": [
+        "Send GET request to /ar",
+        "Assert response status is 200"
+      ],
+      "assertions": [
+        "Response status is 200"
+      ]
+    },
+    {
+      "name": "should display the logo on Arabic homepage",
+      "steps": [
+        "Navigate to /ar",
+        "Wait for network idle",
+        "Handle cookie consent overlay if present",
+        "Assert logo element is visible"
+      ],
+      "assertions": [
+        "Logo image or SVG is visible in the header"
+      ]
+    }
+  ]
+}

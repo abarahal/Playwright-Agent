@@ -1,0 +1,102 @@
+{
+  "name": "cookie-consent",
+  "route": "/fr",
+  "description": "Validate GA4 fires only after consent , and Consent Mode v2 states are correct",
+  "priority": "high",
+  "features": ["cookie-consent", "analytics", "ga4", "consent-mode-v2"],
+  "defaultCookieContext": {
+    "necessary": true,
+    "analytics": false,
+    "marketing": false,
+    "preferences": false
+  },
+  "testCases": [
+    {
+      "name": "should set default cookie context with only necessary cookies enabled",
+      "steps": [
+        "Open a fresh browser context (no prior cookies)",
+        "Navigate to /fr",
+        "Wait for network idle",
+        "Read the cookie-context cookie or localStorage key",
+        "Assert value matches default state"
+      ],
+      "assertions": [
+        "necessary is true",
+        "analytics is false",
+        "marketing is false",
+        "preferences is false"
+      ]
+    },
+    {
+      "name": "should set all cookie context values to true when user accepts all",
+      "steps": [
+        "Open a fresh browser context",
+        "Navigate to /fr",
+        "Wait for cookie consent banner to appear",
+        "Click the 'Accept all' button",
+        "Read the cookie-context cookie or localStorage key"
+      ],
+      "assertions": [
+        "necessary is true",
+        "analytics is true",
+        "marketing is true",
+        "preferences is true"
+      ]
+    },
+    {
+      "name": "should reset all cookie context values to false when user refuses",
+      "steps": [
+        "Open a fresh browser context",
+        "Navigate to /fr",
+        "Wait for cookie consent banner to appear",
+        "Click the 'Refuse' or 'Reject all' button",
+        "Read the cookie-context cookie or localStorage key"
+      ],
+      "assertions": [
+        "necessary is true",
+        "analytics is false",
+        "marketing is false",
+        "preferences is false"
+      ]
+    },
+    {
+      "name": "should not fire GA4 dataLayer events before consent is granted",
+      "steps": [
+        "Open a fresh browser context",
+        "Navigate to /fr",
+        "Wait for network idle",
+        "Assert no GA4 / gtag events fired before accepting consent"
+      ],
+      "assertions": [
+        "window.dataLayer contains no analytics events before consent"
+      ]
+    },
+    {
+      "name": "should fire GA4 dataLayer events after accepting consent",
+      "steps": [
+        "Open a fresh browser context",
+        "Navigate to /fr",
+        "Accept all cookies via the banner",
+        "Assert GA4 / gtag events are present in dataLayer"
+      ],
+      "assertions": [
+        "window.dataLayer contains analytics events after consent"
+      ]
+    },
+    {
+      "name": "should display a compliant cookie banner ",
+      "steps": [
+        "Open a fresh browser context",
+        "Navigate to /fr",
+        "Wait for cookie consent banner to appear"
+      ],
+      "assertions": [
+        "Cookie consent banner is visible",
+        "Accept button is present",
+        "Refuse / Reject button is present",
+        "Customize / Preferences button is present",
+        "Banner text includes privacy policy reference"
+      ]
+    }
+  ]
+}

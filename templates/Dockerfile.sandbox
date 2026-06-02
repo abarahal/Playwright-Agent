@@ -1,0 +1,18 @@
+FROM mcr.microsoft.com/playwright:v1.60.0-noble
+
+ARG PLAYWRIGHT_VERSION=1.60.0
+
+RUN apt-get update && apt-get install -y curl ca-certificates tini \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g @playwright/test@${PLAYWRIGHT_VERSION}
+
+RUN mkdir -p /workspace && chown pwuser:pwuser /workspace
+
+ENV NODE_ENV=test
+ENV CI=true
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV PLAYWRIGHT_JSON_OUTPUT_NAME=test-results.json
+
+USER pwuser
+WORKDIR /workspace

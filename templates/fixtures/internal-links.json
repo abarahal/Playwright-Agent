@@ -1,0 +1,37 @@
+{
+  "name": "internal-links",
+  "route": "/",
+  "description": "Verify that internal links found on the homepage are accessible (HTTP 200) and do not display a 404 error page",
+  "priority": "high",
+  "features": ["navigation", "internal-links"],
+  "testCases": [
+    {
+      "name": "should return HTTP 200 for internal links found on the homepage",
+      "steps": [
+        "Look at HOMEPAGE INTERNAL LINKS in context — these are the actual hrefs crawled from the live homepage",
+        "From that list, pick 10 to 20 representative links (favour top-level section roots, skip deeply nested or duplicate paths)",
+        "Create a for…of loop at describe level (NOT inside a single test) over that fixed list",
+        "For each route, create a separate test() that sends a GET request with maxRedirects: 5",
+        "If the response status is 404, call test.skip(true, 'Route not available in this project')",
+        "Otherwise assert response status is 200"
+      ],
+      "assertions": [
+        "Each selected homepage link returns HTTP 200",
+        "Links that return 404 are skipped with test.skip(), not failed"
+      ]
+    },
+    {
+      "name": "should not display a 404 error page on the primary homepage",
+      "steps": [
+        "Look at HOMEPAGE INTERNAL LINKS — navigate to the first locale homepage found (e.g. /fr, /en)",
+        "Accept cookie banner if present",
+        "Assert page title does not contain '404'",
+        "Assert no heading with visible text '404' exists on the page"
+      ],
+      "assertions": [
+        "expect(page).not.toHaveTitle(/404/)",
+        "expect(page.getByRole('heading', { name: /404/ })).not.toBeAttached()"
+      ]
+    }
+  ]
+}

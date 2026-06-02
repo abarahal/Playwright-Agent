@@ -1,0 +1,27 @@
+{
+  "name": "seo-uniqueness",
+  "route": "/",
+  "description": "Verify that the pages accessible from the main navigation menu each have a unique SEO title and meta description",
+  "priority": "high",
+  "features": ["seo", "metatags", "uniqueness"],
+  "testCases": [
+    {
+      "name": "navigation menu pages should each have a unique title and meta description",
+      "steps": [
+        "Declare two module-level Maps at describe scope: 'titles: Map<string, string>' and 'descriptions: Map<string, string>'",
+        "In a SINGLE test.beforeAll, call test.setTimeout(120_000) first — navigating multiple pages sequentially exceeds the default 30s per-hook timeout",
+        "Create a new browser page, then iterate AVAILABLE PAGE ROUTES from the context to pick 3–5 locale root pages (e.g. /fr, /en, /ar — or /, /en if no locale prefix exists). For each route: titles.set(route, await page.title()), descriptions.set(route, await page.locator('meta[name=\"description\"]').getAttribute('content') ?? '')",
+        "After collecting, add guard: test.skip([...titles.values()].every(t => t === ''), 'No titles collected — routes may not exist in this project')",
+        "Add second guard: test.skip([...descriptions.values()].every(d => d === ''), 'Meta descriptions not configured in this project')",
+        "Close the page",
+        "Write four separate test() blocks — title uniqueness, title non-empty, description uniqueness, description non-empty — each reading from the shared Maps"
+      ],
+      "assertions": [
+        "No two navigation pages share the same title",
+        "Every navigation page has a non-empty title",
+        "No two navigation pages share the same meta description",
+        "Every navigation page has a non-empty meta description"
+      ]
+    }
+  ]
+}

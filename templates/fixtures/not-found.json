@@ -1,0 +1,19 @@
+{
+  "name": "not-found",
+  "route": "/test",
+  "description": "Validate that undefined/non-existent routes return HTTP 404",
+  "priority": "medium",
+  "features": ["404", "error-handling"],
+  "testCases": [
+    {
+      "name": "should return 404 for /test endpoint",
+      "steps": [
+        "Send GET request to /test",
+        "Assert response status is 404"
+      ],
+      "assertions": [
+        "Response status is 404"
+      ]
+    }
+  ]
+}

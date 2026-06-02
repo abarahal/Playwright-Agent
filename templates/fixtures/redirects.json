@@ -1,0 +1,23 @@
+{
+  "name": "redirects",
+  "route": null,
+  "description": "Validate all HTTP redirects from project.redirects.js: each source must return 301/302 with Location pointing to its destination",
+  "priority": "high",
+  "features": ["redirects", "seo"],
+  "redirectsSource": "project.redirects.js",
+  "testCases": [
+    {
+      "name": "each source URL should redirect to its destination",
+      "steps": [
+        "Import redirect rules from project.redirects.js using createRequire(import.meta.url)",
+        "For each rule: GET source with maxRedirects=0 to capture the raw redirect response",
+        "Assert status is 301 when permanent:true, 302 when permanent:false",
+        "Assert Location header contains destination path"
+      ],
+      "assertions": [
+        "Response status matches permanent flag (301 or 302)",
+        "Location header contains the destination URL"
+      ]
+    }
+  ]
+}

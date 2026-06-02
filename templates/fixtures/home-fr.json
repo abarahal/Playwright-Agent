@@ -1,0 +1,32 @@
+{
+  "name": "home-fr",
+  "route": "/fr",
+  "description": "Validate the Sothema homepage in French: HTTP 200 and logo visibility",
+  "priority": "high",
+  "locale": "fr",
+  "features": ["homepage", "logo", "navigation"],
+  "testCases": [
+    {
+      "name": "should return HTTP 200 for French homepage",
+      "steps": [
+        "Send GET request to /fr",
+        "Assert response status is 200"
+      ],
+      "assertions": [
+        "Response status is 200"
+      ]
+    },
+    {
+      "name": "should display the logo on French homepage",
+      "steps": [
+        "Navigate to /fr",
+        "Wait for network idle",
+        "Handle cookie consent overlay if present",
+        "Assert logo element is visible"
+      ],
+      "assertions": [
+        "Logo image or SVG is visible in the header"
+      ]
+    }
+  ]
+}

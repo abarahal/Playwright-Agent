@@ -1,0 +1,36 @@
+{
+  "name": "search",
+  "route": "/fr",
+  "description": "Validate the search overlay: open via header input, display results",
+  "priority": "medium",
+  "features": [
+    "search-input",
+    "search-results",
+    "search-overlay"
+  ],
+  "testCases": [
+    {
+      "name": "should open search overlay when search icon is clicked",
+      "steps": [
+        "Navigate to /fr (page with header)",
+        "Accept cookie banner",
+        "Click data-testid='desktop-search-input' to open overlay",
+        "Assert search overlay is visible"
+      ],
+      "assertions": [
+        "data-testid='search-autocomplete-overlay' is visible after click"
+      ]
+    },
+    {
+      "name": "should display search results for a valid query",
+      "steps": [
+        "Navigate to /search?q=sothema",
+        "Accept cookie banner",
+        "Assert results container is rendered"
+      ],
+      "assertions": [
+        "data-testid='search-input-page-results' is visible"
+      ]
+    }
+  ]
+}

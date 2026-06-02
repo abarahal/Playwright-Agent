@@ -1,0 +1,39 @@
+{
+  "name": "metatags",
+  "route": "/fr",
+  "description": "Validate that key pages have a non-empty title and meta description",
+  "priority": "high",
+  "features": ["seo", "metatags"],
+  "testCases": [
+    {
+      "name": "should have a non-empty page title",
+      "steps": [
+        "Navigate to /fr",
+        "Read document.title"
+      ],
+      "assertions": [
+        "document.title is not empty"
+      ]
+    },
+    {
+      "name": "should have a non-empty meta description",
+      "steps": [
+        "Navigate to /fr",
+        "Read meta[name='description'] content attribute"
+      ],
+      "assertions": [
+        "meta description content is not empty"
+      ]
+    },
+    {
+      "name": "should have a non-empty page title on English homepage",
+      "steps": [
+        "Navigate to /en",
+        "Read document.title"
+      ],
+      "assertions": [
+        "document.title is not empty"
+      ]
+    }
+  ]
+}

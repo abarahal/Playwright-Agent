@@ -1,0 +1,45 @@
+{
+  "name": "@abarahal/playwright-ai-agent",
+  "version": "1.6.2",
+  "description": "AI Testing Agent for Next.js — generates and fixes Playwright tests using Claude via OpenRouter",
+  "type": "module",
+  "bin": {
+    "ai-agent": "./bin/run.js",
+    "run-sandbox": "./bin/run-sandbox.js"
+  },
+  "files": [
+    "bin/",
+    "core/",
+    "llm/",
+    "templates/",
+    "tools/",
+    "workflows/",
+    "cli.ts",
+    "config.ts",
+    "watcher.ts",
+    "sandbox-config.ts"
+  ],
+  "scripts": {
+    "prepublishOnly": "echo 'Ready to publish — TypeScript is run via tsx at runtime'"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "dotenv": "^16.4.0",
+    "tsx": "^4.22.0"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  },
+  "engines": {
+    "node": ">=18.19.0"
+  },
+  "keywords": [
+    "playwright",
+    "testing",
+    "ai",
+    "claude",
+    "nextjs",
+    "test-generation"
+  ],
+  "license": "MIT"
+}

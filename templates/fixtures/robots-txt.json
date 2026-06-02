@@ -1,0 +1,16 @@
+{
+  "name": "robots-txt",
+  "route": "/robots.txt",
+  "description": "Verify that robots.txt is accessible and returns HTTP 200 with valid content",
+  "priority": "high",
+  "testCases": [
+    {
+      "name": "should return HTTP 200",
+      "assertions": ["response status is 200"]
+    },
+    {
+      "name": "should contain User-agent directive",
+      "assertions": ["body contains 'User-agent'"]
+    }
+  ]
+}

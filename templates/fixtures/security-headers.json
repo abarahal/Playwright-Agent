@@ -1,0 +1,101 @@
+{
+  "name": "security-headers",
+  "route": "/fr",
+  "description": "Validate that required security headers are present on all responses",
+  "priority": "high",
+  "features": ["security", "headers"],
+  "expectedHeaders": [
+    {
+      "header": "Strict-Transport-Security",
+      "expectedValue": "max-age=63072000; includeSubDomains; preload"
+    },
+    {
+      "header": "X-Frame-Options",
+      "expectedValue": "SAMEORIGIN"
+    },
+    {
+      "header": "X-Content-Type-Options",
+      "expectedValue": "nosniff"
+    },
+    {
+      "header": "Referrer-Policy",
+      "expectedValue": "strict-origin-when-cross-origin"
+    },
+    {
+      "header": "X-XSS-Protection",
+      "expectedValue": "1; mode=block"
+    },
+    {
+      "header": "Permissions-Policy",
+      "expectedValue": "camera=(), microphone=(), geolocation=()"
+    }
+  ],
+  "testCases": [
+    {
+      "name": "should include Strict-Transport-Security (HSTS) header",
+      "steps": [
+        "Send GET request to /fr",
+        "Read response headers",
+        "Assert Strict-Transport-Security is present with correct value"
+      ],
+      "assertions": [
+        "Header Strict-Transport-Security equals 'max-age=63072000; includeSubDomains; preload'"
+      ]
+    },
+    {
+      "name": "should include X-Frame-Options header",
+      "steps": [
+        "Send GET request to /fr",
+        "Read response headers",
+        "Assert X-Frame-Options is present"
+      ],
+      "assertions": [
+        "Header X-Frame-Options equals 'SAMEORIGIN'"
+      ]
+    },
+    {
+      "name": "should include X-Content-Type-Options header",
+      "steps": [
+        "Send GET request to /fr",
+        "Read response headers",
+        "Assert X-Content-Type-Options is present"
+      ],
+      "assertions": [
+        "Header X-Content-Type-Options equals 'nosniff'"
+      ]
+    },
+    {
+      "name": "should include Referrer-Policy header",
+      "steps": [
+        "Send GET request to /fr",
+        "Read response headers",
+        "Assert Referrer-Policy is present"
+      ],
+      "assertions": [
+        "Header Referrer-Policy equals 'strict-origin-when-cross-origin'"
+      ]
+    },
+    {
+      "name": "should include X-XSS-Protection header",
+      "steps": [
+        "Send GET request to /fr",
+        "Read response headers",
+        "Assert X-XSS-Protection is present"
+      ],
+      "assertions": [
+        "Header X-XSS-Protection equals '1; mode=block'"
+      ]
+    },
+    {
+      "name": "should include Permissions-Policy header",
+      "steps": [
+        "Send GET request to /fr",
+        "Read response headers",
+        "Assert Permissions-Policy is present"
+      ],
+      "assertions": [
+        "Header Permissions-Policy equals 'camera=(), microphone=(), geolocation=()'"
+      ]
+    }
+  ]
+}
