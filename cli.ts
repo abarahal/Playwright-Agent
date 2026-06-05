@@ -7,6 +7,7 @@ import { runGenerateWorkflow } from "./workflows/generateTests.js"
 import { runFixWorkflow } from "./workflows/fixTests.js"
 
 import { runFormTestsWorkflow } from "./workflows/generateFormTests.js"
+import { runAuditWorkflow } from "./workflows/auditTests.js"
 
 program
   .name("ai-agent")
@@ -95,6 +96,25 @@ program
       if (result.failed.length > 0) process.exit(1)
     } catch (err) {
       console.error("❌ Forms workflow failed:", err instanceof Error ? err.message : err)
+      process.exit(1)
+    }
+  })
+
+program
+  .command("audit")
+  .description("Audit all Playwright tests for bad practices, config issues, and structural problems")
+  .option("--scope <scope>", "Scope to scan: all | generated | manual (default: all)", "all")
+  .action(async (opts: { scope?: string }) => {
+    const scope = (opts.scope ?? "all") as "all" | "generated" | "manual"
+    if (!["all", "generated", "manual"].includes(scope)) {
+      console.error(`❌ Invalid scope "${scope}". Use: all | generated | manual`)
+      process.exit(1)
+    }
+    try {
+      const result = await runAuditWorkflow(scope)
+      if (result.errorCount > 0) process.exit(1)
+    } catch (err) {
+      console.error("❌ Audit failed:", err instanceof Error ? err.message : err)
       process.exit(1)
     }
   })

@@ -1,0 +1,25 @@
+{
+  "name": "sitemap",
+  "route": "/fr/sitemap.xml",
+  "description": "Verify that sitemap.xml is accessible for each enabled locale and returns valid XML. Locales must be read dynamically from project.config.js (languages.enabled) — never hardcode them.",
+  "priority": "high",
+  "features": ["seo", "sitemap"],
+  "localesSource": "project.config.js → languages.enabled",
+  "testCases": [
+    {
+      "name": "should return HTTP 200 and valid XML for each enabled locale sitemap",
+      "steps": [
+        "Read enabled locales from project.config.js (languages.enabled) using fs + require/path — find the file by walking up from process.cwd() until project.config.js is found",
+        "For each locale, send GET request to /{locale}/sitemap.xml",
+        "Assert response status is 200",
+        "Assert Content-Type header contains 'application/xml'",
+        "Assert body contains '<urlset' or '<sitemapindex' or '<?xml'"
+      ],
+      "assertions": [
+        "response status is 200 for each locale sitemap",
+        "Content-Type header contains 'application/xml'",
+        "body contains valid XML sitemap markup"
+      ]
+    }
+  ]
+}

@@ -4,10 +4,12 @@ import {
   FIX_SYSTEM_PROMPT,
   UTIL_SYSTEM_PROMPT,
   FIXTURE_SYSTEM_PROMPT,
+  AUDIT_SYSTEM_PROMPT,
   buildGenerationPrompt,
   buildFixPrompt,
   buildUtilPrompt,
   buildFixtureFromComponentPrompt,
+  buildAuditPrompt,
 } from "./prompts.js"
 import type { Fixture } from "../tools/fileSystem.js"
 
@@ -153,6 +155,11 @@ export async function fixTest(
 ): Promise<string> {
   const userPrompt = buildFixPrompt(testCode, errorLog, context)
   return callClaude(FIX_SYSTEM_PROMPT, userPrompt)
+}
+
+export async function auditTests(filesContext: string): Promise<string> {
+  const userPrompt = buildAuditPrompt(filesContext)
+  return callClaude(AUDIT_SYSTEM_PROMPT, userPrompt)
 }
 
 export async function generateFixture(

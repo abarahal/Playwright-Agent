@@ -1,0 +1,64 @@
+{
+  "name": "filters",
+  "description": "Filter UI tests for list pages — set \"route\" to a filterable list page in your project before generating",
+  "priority": "medium",
+  "features": [
+    "filters",
+    "list"
+  ],
+  "testCases": [
+    {
+      "name": "filter panel is visible on the list page",
+      "steps": [
+        "Navigate to the filterable list page",
+        "Accept cookies",
+        "Wait for list items and filter controls to render"
+      ],
+      "assertions": [
+        "Filter panel or filter controls are visible",
+        "At least one filter option is present"
+      ]
+    },
+    {
+      "name": "applying a filter updates the list results",
+      "steps": [
+        "Navigate to the filterable list page",
+        "Accept cookies",
+        "Use detectFilters(page) from utils/filter-tester.js to verify filters exist — skip if none found",
+        "Record the initial item count or text of the first visible item",
+        "Click or select the first available filter option (use data-testid, getByRole, or getByLabel — never click by raw text)",
+        "Wait for the list to update"
+      ],
+      "assertions": [
+        "Item count or content changes after filter is applied",
+        "URL reflects the active filter if the filter is URL-based (query param or path segment)"
+      ]
+    },
+    {
+      "name": "clearing a filter restores the full list",
+      "steps": [
+        "Navigate to the filterable list page",
+        "Accept cookies",
+        "Apply a filter",
+        "Click the reset or clear button, or deselect the active filter option",
+        "Wait for the list to restore"
+      ],
+      "assertions": [
+        "All items are visible again after clearing the filter",
+        "No active filter indicator remains"
+      ]
+    },
+    {
+      "name": "full filter suite passes",
+      "steps": [
+        "Navigate to the filterable list page",
+        "Accept cookies",
+        "Use testFilters(page, config) from utils/filter-tester.js for the full filter suite"
+      ],
+      "assertions": [
+        "Applying each filter option updates the results",
+        "Clearing filters restores the original list"
+      ]
+    }
+  ]
+}

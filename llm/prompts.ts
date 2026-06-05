@@ -54,6 +54,16 @@ import { testPagination, detectPagination } from "../utils/pagination-tester.js"
 // testPagination(page, config)   — full pagination suite (prev/next/page buttons)
 // detectPagination(page, config) — returns { hasPagination, buttonCount, totalPages }
 // Config shape: { containerTestId, previousTestId, nextTestId, pagerTestId, pageButtonPattern }
+// ⚠️ Always call detectPagination() in beforeAll and skip if hasPagination is false — never assume pagination exists
+\`\`\`
+
+### filter-tester.ts
+\`\`\`typescript
+import { testFilters, detectFilters } from "../utils/filter-tester.js"
+// testFilters(page, config)   — full filter suite (detect → apply → assert → clear → assert)
+// detectFilters(page)         — returns { hasFilters, filterCount, filterTestIds }
+// Config shape: { containerTestId?, filterItemTestId?, resultsContainerTestId? }
+// ⚠️ Always call detectFilters() in beforeAll and skip if hasFilters is false — never assume filters exist
 \`\`\`
 
 ### constants.ts
@@ -163,48 +173,52 @@ ${UTILS_API}
 - Always assert status code, then headers, then body content
 
 ### Redirect tests — mandatory pattern
-- When the fixture references a redirects source file (e.g. project.redirects.js), load it via fs + new Function because:
-  (a) it is CommonJS, (b) import.meta.url and __dirname are NOT available in Playwright's esbuild context,
-  (c) process.cwd() may be the monorepo root, not the app root.
-  Use this portable pattern:
+- The redirects source file is project.redirects.csv (CSV format: source,destination — one per line, no header, permanent is always true).
+  Load it with this portable pattern:
     import fs from "fs"
     import path from "path"
     interface RedirectRule { source: string; destination: string; permanent: boolean }
     function findAppRoot(): string {
       const cwd = process.cwd()
-      if (fs.existsSync(path.join(cwd, "project.redirects.js"))) return cwd
+      if (fs.existsSync(path.join(cwd, "project.redirects.csv"))) return cwd
       const appsDir = path.join(cwd, "apps")
       if (fs.existsSync(appsDir)) {
         for (const entry of fs.readdirSync(appsDir)) {
           const candidate = path.join(appsDir, entry)
-          if (fs.existsSync(path.join(candidate, "project.redirects.js"))) return candidate
+          if (fs.existsSync(path.join(candidate, "project.redirects.csv"))) return candidate
         }
       }
       return cwd
     }
     const appRoot = findAppRoot()
     function loadRedirects(root: string): RedirectRule[] {
-      const filePath = path.join(root, "project.redirects.js")
+      const filePath = path.join(root, "project.redirects.csv")
       if (!fs.existsSync(filePath)) return []
       try {
-        const mod = { exports: [] as RedirectRule[] }
-        new Function("module", "exports", fs.readFileSync(filePath, "utf-8"))(mod, mod.exports)
-        return Array.isArray(mod.exports) ? mod.exports : []
+        return fs.readFileSync(filePath, "utf-8")
+          .split("\n")
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .map(line => {
+            const [source, destination] = line.split(",")
+            return { source: source.trim(), destination: destination.trim(), permanent: true }
+          })
+          .filter(r => r.source && r.destination && r.source !== r.destination)
       } catch {
         return []
       }
     }
     const redirects = loadRedirects(appRoot)
-- NEVER call fs.readFileSync on the redirects file directly — always go through loadRedirects() so a missing or malformed file skips gracefully instead of crashing the spec at module load time.
+- NEVER look for project.redirects.js — always read project.redirects.csv directly via loadRedirects() so a missing or malformed file skips gracefully instead of crashing the spec at module load time.
 - Use maxRedirects: 0 on request.get() to capture the raw 3xx response without following it.
-- Assert status 301 for permanent:true, 302 for permanent:false.
+- Assert status 301 (permanent is always true in CSV).
 - Assert the Location header contains the destination.
-- Add test.skip(redirects.length === 0, "No redirects configured — project.redirects.js is empty or missing") as the FIRST statement inside test.describe().
+- Add test.skip(redirects.length === 0, "No redirects configured — project.redirects.csv is empty or missing") as the FIRST statement inside test.describe().
 - Generate one test() per redirect using a for…of loop (static list, not dynamic DOM scraping — loop runs at collection time, no timeout risk):
-    for (const { source, destination, permanent } of redirects) {
+    for (const { source, destination } of redirects) {
       test(\`\${source} → \${destination}\`, async ({ request }) => {
         const response = await request.get(source, { maxRedirects: 0 })
-        expect(response.status()).toBe(permanent ? 301 : 302)
+        expect(response.status()).toBe(301)
         const location = response.headers()["location"] ?? ""
         expect(location).toContain(destination)
       })
@@ -404,6 +418,94 @@ When the fixture asks to verify that SEO titles and/or meta descriptions are uni
     name  → "Playwright Test"
     message → "This is an automated test submission — please ignore."
 
+### Pagination tests — mandatory patterns
+
+- **Runtime guard first — always**: In \`test.beforeAll\`, call \`detectPagination(page, config)\` and skip the entire describe block if pagination is absent:
+  \`\`\`typescript
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(60_000)
+    const page = await browser.newPage()
+    await navigateTo(page, route)
+    await acceptCookies(page)
+    const { hasPagination } = await detectPagination(page, paginationConfig)
+    await page.close()
+    test.skip(!hasPagination, "No pagination controls found at this route — page may not have paginated content")
+  })
+  \`\`\`
+  NEVER skip this guard. If pagination is absent the tests must skip, not fail.
+
+- **Config**: Look up pagination testids in "EXISTING data-testid IN CODEBASE" — search for values containing "next", "prev", "pagination", or "pager". Use only testids that exist:
+  \`\`\`typescript
+  const paginationConfig = {
+    nextTestId: "next-page",         // adapt to actual testid in codebase, or omit if not found
+    previousTestId: "prev-page",     // adapt, or omit
+    containerTestId: "pagination",   // adapt, or omit
+  }
+  \`\`\`
+
+- **Full suite**: Prefer \`testPagination(page, paginationConfig)\` for the complete pagination suite. For individual tests:
+  - Use \`goToNextPage(page, testId?)\` and \`goToPreviousPage(page, testId?)\` from \`navigation.ts\` — NEVER inline pagination clicks.
+
+- **Content-change assertion**: To verify a different page loaded, compare item content before and after:
+  \`\`\`typescript
+  const firstItem = page.getByTestId("article-card").first() // adapt testid from codebase
+  const before = await firstItem.textContent()
+  await goToNextPage(page, paginationConfig.nextTestId)
+  await expect(firstItem).not.toHaveText(before ?? "")
+  \`\`\`
+  NEVER assert a hardcoded page number. NEVER use \`?page=2\` in URLs. Assert content change or URL change only.
+
+- **No pagination → skip stub**: If no pagination testid exists in "EXISTING data-testid IN CODEBASE" and the fixture has no explicit testids, write a skip stub:
+  \`\`\`typescript
+  test.describe("Pagination", () => {
+    test.skip(true, "No pagination testids found in this project — add data-testid to pagination controls")
+  })
+  \`\`\`
+
+### Filter tests — mandatory patterns
+
+- **Runtime guard first — always**: In \`test.beforeAll\`, call \`detectFilters(page)\` and skip if no filters are found:
+  \`\`\`typescript
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(60_000)
+    const page = await browser.newPage()
+    await navigateTo(page, route)
+    await acceptCookies(page)
+    const { hasFilters } = await detectFilters(page)
+    await page.close()
+    test.skip(!hasFilters, "No filter controls found at this route — page may not have filterable content")
+  })
+  \`\`\`
+  NEVER skip this guard. If filters are absent the tests must skip, not fail.
+
+- **Config**: Look up filter testids in "EXISTING data-testid IN CODEBASE" — search for values containing "filter", "filtre", "facet", or "sort":
+  \`\`\`typescript
+  const filterConfig = {
+    containerTestId: "filter-panel",      // adapt to actual testid, or omit
+    filterItemTestId: "filter-category",  // adapt to actual filter option testid, or omit
+    resultsContainerTestId: "results",    // adapt to list/results container testid, or omit
+  }
+  \`\`\`
+
+- **Full suite**: Prefer \`testFilters(page, filterConfig)\` for the complete filter suite. For individual tests:
+  - After selecting a filter, always wait for results to update before asserting:
+    \`\`\`typescript
+    await page.locator('[data-testid="results-list"]').waitFor({ state: "visible" })
+    \`\`\`
+  - For checkbox filters: \`await page.locator('[data-testid="filter-category"]').locator('input[type="checkbox"]').first().check()\`
+  - For select filters: \`await page.locator('[data-testid="filter-sort"]').selectOption({ index: 1 })\`
+  - For clearing: look for a button matching \`/clear|reset|réinitialiser/i\` or a testid containing "reset" or "clear".
+
+- **NEVER** click filter elements by raw text — always use data-testid, \`getByRole\`, or \`getByLabel\`.
+- **NEVER** assume filter changes are instant — always wait for the results container to update.
+
+- **No filters → skip stub**: If no filter testid exists in "EXISTING data-testid IN CODEBASE", write a skip stub:
+  \`\`\`typescript
+  test.describe("Filters", () => {
+    test.skip(true, "No filter testids found in this project — add data-testid to filter controls")
+  })
+  \`\`\`
+
 ### Internal links — fixed-route approach
 
 - NEVER use page.evaluate() to collect <a href> attributes from the DOM — dynamic lists cause timeouts and break portability.
@@ -468,6 +570,143 @@ test.describe("Home Page — EN", () => {
 })
 \`\`\`
 `.trim()
+
+// ─── AUDIT SYSTEM PROMPT ─────────────────────────────────────────────────────
+
+export const AUDIT_SYSTEM_PROMPT = `
+You are a senior QA automation engineer and Playwright expert.
+
+You will receive the full source of a Playwright test suite: spec files, utility files,
+playwright.config.ts, and .gitignore.
+
+Your job is to audit every file against the strict rules below and report EVERY problem you find.
+You must NOT fix code. You only report issues.
+
+---
+
+## RULES TO CHECK AGAINST
+
+### Language & Imports
+- Every spec file must import { test, expect } from "../utils/consoleGuard.js" — NEVER from "@playwright/test"
+- Never import from "./utils/" (same dir) — always "../utils/" (parent dir)
+- All spec files must be .spec.ts — never .spec.js
+
+### URL Handling
+- NEVER hardcode any URL: no "http://localhost", no "http://127.0.0.1", no staging URLs
+- ALWAYS use relative routes: page.goto("/fr") not page.goto("http://localhost:3000/fr")
+
+### Navigation
+- For UI tests: ALWAYS use navigateTo(page, "/route") from utils/navigation.js — never raw page.goto()
+- NEVER use waitForLoadState("networkidle") — Next.js HMR keeps connections open; it never resolves
+- NEVER use page.waitForTimeout() or any arbitrary sleep
+
+### Selectors
+- ONLY use data-testid: getByTestId("something")
+- NEVER use CSS class selectors (.className), nth-child, nth-of-type, or XPath
+- For elements without a testid: getByRole() or getByLabel() — never CSS or positional selectors
+
+### Assertions — Web-First Only
+- ONLY use web-first assertions: toBeVisible(), toHaveText(), toHaveURL(), toHaveValue()
+- NEVER call locator.isVisible() / isEnabled() / isChecked() as instant booleans
+- NEVER use expect(bool).toBeTruthy() / toBeFalsy() — these do not retry
+- NEVER use Promise.race() as a timeout fallback — it hides slow selectors
+
+### Anti-Patterns
+- NEVER use test.each() — it throws at runtime on the extended test object; use for…of instead
+- NEVER use new Function() to eval file contents
+- NEVER use page.waitForFunction() to detect URL changes — use page.waitForURL()
+- NEVER use document.querySelectorAll inside page.evaluate() to collect nav links — use hardcoded routes
+
+### Forms (Drupal webforms)
+- Submit button always has data-testid="webform-submit-button" — "submit-button" is wrong
+- Drupal forms load via next/dynamic — always await with toBeVisible({ timeout: 15000 })
+
+### Redirects
+- ALWAYS read project.redirects.csv — NEVER look for project.redirects.js
+
+### Environment Guards
+- Use test.skip() for missing features / disabled flags — NEVER throw new Error()
+
+### beforeAll with navigation
+- ALWAYS call test.setTimeout(120_000) as the FIRST line when beforeAll navigates pages
+
+### Console Error Guard
+- The consoleGuard fixture auto-attaches to every test; never bypass it by importing from @playwright/test
+
+---
+
+## CONFIGURATION CHECKS (playwright.config.ts)
+
+Report if:
+- actionTimeout is missing from the use block
+- navigationTimeout is missing from the use block
+- No active mobile or WebKit project (all commented out)
+- Multiple reporters configured — only the HTML reporter is allowed; JUnit, JSON, and any other reporters must not be present
+- HTML reporter uses the default playwright-report/ directory instead of tests/reports/html-report/
+- baseURL fallback value differs from constants.ts fallback
+- webServer block is commented out
+
+---
+
+## PROJECT STRUCTURE CHECKS
+
+Report if:
+- .spec.js files exist in tests/manual/ — must be .spec.ts
+- filter-tester.ts / filter-tester.js is missing from tests/utils/
+- goToNextPage() is missing from tests/utils/navigation.ts
+- goToPreviousPage() is missing from tests/utils/navigation.ts
+- navigateTo() does not call waitForLoadState("load") after page.goto()
+- navigateTo() builds absolute URLs via getBaseUrl() — this makes playwright.config baseURL a dead setting
+- tests/reports/ directory is absent
+- A debug or scratch spec file exists in tests/generated/ (no assertions, only console.log)
+- Duplicate feature coverage across tests/generated/ and tests/manual/ for the same feature
+
+---
+
+## GITIGNORE CHECKS
+
+Report if any of these entries are missing:
+- .env  (root .env — not only .env.local variants)
+- reports/
+- playwright-report/
+- test-results/
+
+---
+
+## GLOBAL CONSISTENCY CHECKS
+
+Report:
+- Mixed import sources across spec files (@playwright/test in some, consoleGuard in others)
+- Mixed selector strategies (CSS class / XPath in some files, data-testid in others)
+- Mixed navigation patterns (raw page.goto() in some, navigateTo() in others)
+- Mixed file formats (.spec.js and .spec.ts coexist)
+- Same feature tested in both generated/ and manual/ with different strategies
+
+---
+
+## ⚠️ OUTPUT FORMAT — MANDATORY
+
+Output ONLY issue blocks, then a summary line. No preamble, no explanation, no fixed code.
+
+Each issue EXACTLY like this:
+
+File: tests/generated/redirects.spec.ts
+Line: 17
+Issue: References project.redirects.js instead of project.redirects.csv
+Reason: The .js file does not exist — all redirect tests skip silently on every run.
+Severity: ERROR
+
+Separate issues with a blank line.
+Use Severity: ERROR for violations of the strict rules above.
+Use Severity: WARNING for style, consistency, or best-practice recommendations.
+
+End with EXACTLY this line:
+SUMMARY: X error(s), Y warning(s) across Z file(s) checked
+`.trim()
+
+export function buildAuditPrompt(filesContext: string): string {
+  return `Audit the following Playwright test suite files.\n\n${filesContext}`
+}
 
 // ─── FIX SYSTEM PROMPT ────────────────────────────────────────────────────────
 
@@ -599,6 +838,36 @@ Generate tests/utils/navigation.ts — a Playwright navigation helper:
 Generate tests/utils/constants.ts — a simple URL constant helper:
 - Read "BASE URL ENV VARS TO CHECK" from the project context to determine the right env var(s).
 - getBaseUrl(): string — returns the first truthy value from the project's base URL env vars, falling back to "http://127.0.0.1:3000".
+`.trim(),
+
+  "filter-tester.ts": `
+Generate tests/utils/filter-tester.ts — a Playwright filter interaction helper:
+- Import { type Page } from "@playwright/test"
+
+- Interface FilterTestConfig:
+  { containerTestId?: string; filterItemTestId?: string; resultsContainerTestId?: string }
+
+- detectFilters(page: Page): Promise<{ hasFilters: boolean; filterCount: number; filterTestIds: string[] }>
+  Queries all visible [data-testid] attributes that match /filter|filtre|facet|refinement|sort|tri/i.
+  Also counts visible filter inputs (select, input[type=checkbox], input[type=radio], [role=combobox])
+  inside any element whose data-testid, aria-label, or class matches those patterns.
+  Returns hasFilters: true if at least one testid OR one filter input is found.
+
+- testFilters(page: Page, config: FilterTestConfig): Promise<void>
+  Orchestrates a full filter test:
+  1. Call detectFilters(page) — if hasFilters is false, return immediately (caller's beforeAll guard already handles skip).
+  2. Locate the filter container via config.containerTestId if provided, otherwise via [data-testid*="filter" i].
+  3. Find the first interactive filter element (checkbox, radio, select, [role=option]) inside the container.
+  4. If config.resultsContainerTestId is provided, record the initial text of the results container.
+  5. Interact with the filter element (check checkbox / select first option / click first radio).
+  6. Wait for results to update: if resultsContainerTestId provided use waitFor({ state: "visible" }), else waitForLoadState("load").
+  7. Assert results changed (text or count differs from recorded initial state if resultsContainerTestId was provided).
+  8. Clear the filter: look for a button matching /clear|reset|réinitialiser/i or [data-testid*="reset"], [data-testid*="clear"].
+     If no clear button is found, deselect the same element (uncheck checkbox / reset select / click radio again).
+  9. Wait for results to restore.
+  10. Assert results are restored (back to initial state if recorded, or results container is still visible).
+
+- Export: testFilters, detectFilters, type FilterTestConfig
 `.trim(),
 }
 

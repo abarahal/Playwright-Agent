@@ -1,0 +1,64 @@
+{
+  "name": "pagination",
+  "description": "Pagination UI tests for list pages — set \"route\" to a paginated list page in your project before generating",
+  "priority": "medium",
+  "features": [
+    "pagination",
+    "navigation"
+  ],
+  "testCases": [
+    {
+      "name": "pagination controls are visible on the list page",
+      "steps": [
+        "Navigate to the list page",
+        "Accept cookies",
+        "Wait for list items to render"
+      ],
+      "assertions": [
+        "Next page button is visible",
+        "Pagination container is present"
+      ]
+    },
+    {
+      "name": "next page navigation loads different content",
+      "steps": [
+        "Navigate to the list page",
+        "Accept cookies",
+        "Wait for list items to render",
+        "Record the text content of the first visible item",
+        "Use goToNextPage(page, nextTestId?) from utils/navigation.js to navigate to the next page",
+        "Wait for the list to reload"
+      ],
+      "assertions": [
+        "First item text is different after navigating to next page",
+        "URL or page indicator reflects page 2"
+      ]
+    },
+    {
+      "name": "previous page navigation returns to first page content",
+      "steps": [
+        "Navigate to the list page",
+        "Accept cookies",
+        "Use goToNextPage(page) to go to page 2",
+        "Use goToPreviousPage(page, prevTestId?) from utils/navigation.js to return"
+      ],
+      "assertions": [
+        "First item text matches original first-page content",
+        "Page indicator is back to page 1"
+      ]
+    },
+    {
+      "name": "full pagination suite passes",
+      "steps": [
+        "Navigate to the list page",
+        "Accept cookies",
+        "Use detectPagination(page, config) from utils/pagination-tester.js to verify pagination exists — skip if not found",
+        "Use testPagination(page, config) for the full pagination suite"
+      ],
+      "assertions": [
+        "Each page number button navigates to the expected page",
+        "Active page indicator updates correctly"
+      ]
+    }
+  ]
+}
