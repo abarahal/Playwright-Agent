@@ -587,51 +587,52 @@ You must NOT fix code. You only report issues.
 ## RULES TO CHECK AGAINST
 
 ### Language & Imports
-- Every spec file must import { test, expect } from "../utils/consoleGuard.js" — NEVER from "@playwright/test"
-- Never import from "./utils/" (same dir) — always "../utils/" (parent dir)
-- All spec files must be .spec.ts — never .spec.js
+- All spec files should be .spec.ts — .spec.js is allowed but flag it as a WARNING recommending migration to TypeScript
+- If the project uses a custom test wrapper (e.g. a fixture file that extends test), all spec files must import from that wrapper — NEVER directly from "@playwright/test"
+- If no custom wrapper exists, importing from "@playwright/test" is acceptable
+- Never import utils from the same directory as the spec file — always use the correct relative path to the utils folder
 
 ### URL Handling
-- NEVER hardcode any URL: no "http://localhost", no "http://127.0.0.1", no staging URLs
-- ALWAYS use relative routes: page.goto("/fr") not page.goto("http://localhost:3000/fr")
+- NEVER hardcode any URL: no "http://localhost", no "http://127.0.0.1", no staging or production URLs
+- ALWAYS use relative routes: page.goto("/path") not page.goto("http://localhost:3000/path")
+- baseURL must be set in playwright.config.ts — never constructed manually inside tests
 
 ### Navigation
-- For UI tests: ALWAYS use navigateTo(page, "/route") from utils/navigation.js — never raw page.goto()
-- NEVER use waitForLoadState("networkidle") — Next.js HMR keeps connections open; it never resolves
-- NEVER use page.waitForTimeout() or any arbitrary sleep
+- NEVER use waitForLoadState("networkidle") — it never resolves in apps with persistent connections (HMR, websockets)
+- NEVER use page.waitForTimeout() or any arbitrary sleep — use proper web-first assertions instead
+- If the project provides a navigation helper (e.g. navigateTo()), use it consistently — mixing raw page.goto() with a helper is a WARNING
+- After page.goto(), always wait for a meaningful element or URL — never assume the page is ready immediately
 
 ### Selectors
-- ONLY use data-testid: getByTestId("something")
+- Prefer data-testid selectors: getByTestId("something")
 - NEVER use CSS class selectors (.className), nth-child, nth-of-type, or XPath
-- For elements without a testid: getByRole() or getByLabel() — never CSS or positional selectors
+- For elements without a testid: getByRole() or getByLabel() are acceptable — never CSS or positional selectors
 
 ### Assertions — Web-First Only
-- ONLY use web-first assertions: toBeVisible(), toHaveText(), toHaveURL(), toHaveValue()
-- NEVER call locator.isVisible() / isEnabled() / isChecked() as instant booleans
+- ONLY use web-first assertions: toBeVisible(), toHaveText(), toHaveURL(), toHaveValue(), toHaveCount(), etc.
+- NEVER call locator.isVisible() / isEnabled() / isChecked() as instant booleans inside expect()
 - NEVER use expect(bool).toBeTruthy() / toBeFalsy() — these do not retry
 - NEVER use Promise.race() as a timeout fallback — it hides slow selectors
 
 ### Anti-Patterns
-- NEVER use test.each() — it throws at runtime on the extended test object; use for…of instead
+- NEVER use test.each() — it can throw at runtime with extended test objects; use for…of instead
 - NEVER use new Function() to eval file contents
 - NEVER use page.waitForFunction() to detect URL changes — use page.waitForURL()
-- NEVER use document.querySelectorAll inside page.evaluate() to collect nav links — use hardcoded routes
+- NEVER use document.querySelectorAll inside page.evaluate() to collect links — use explicit routes
 
-### Forms (Drupal webforms)
-- Submit button always has data-testid="webform-submit-button" — "submit-button" is wrong
-- Drupal forms load via next/dynamic — always await with toBeVisible({ timeout: 15000 })
-
-### Redirects
-- ALWAYS read project.redirects.csv — NEVER look for project.redirects.js
+### Forms
+- Form submission buttons should have a stable data-testid — never rely on text content or position
+- Dynamic forms (lazy-loaded) must always be awaited with toBeVisible() before interaction
 
 ### Environment Guards
-- Use test.skip() for missing features / disabled flags — NEVER throw new Error()
+- Use test.skip() for missing features or disabled flags — NEVER throw new Error()
+- Conditionally skipped tests must include a clear reason string in test.skip()
 
 ### beforeAll with navigation
-- ALWAYS call test.setTimeout(120_000) as the FIRST line when beforeAll navigates pages
+- ALWAYS call test.setTimeout() as the FIRST line in beforeAll when it navigates pages — prevents flaky timeouts
 
 ### Console Error Guard
-- The consoleGuard fixture auto-attaches to every test; never bypass it by importing from @playwright/test
+- If the project provides a console error guard fixture, never bypass it by importing directly from @playwright/test
 
 ---
 
@@ -640,34 +641,27 @@ You must NOT fix code. You only report issues.
 Report if:
 - actionTimeout is missing from the use block
 - navigationTimeout is missing from the use block
-- No active mobile or WebKit project (all commented out)
-- Multiple reporters configured — only the HTML reporter is allowed; JUnit, JSON, and any other reporters must not be present
-- HTML reporter uses the default playwright-report/ directory instead of tests/reports/html-report/
-- baseURL fallback value differs from constants.ts fallback
-- webServer block is commented out
+- baseURL is missing or hardcoded to a specific environment — it should use an environment variable with a fallback
+- webServer block is absent or commented out — tests should start their own server
+- Multiple reporters configured — only one reporter is recommended; flag extras as WARNING
+- HTML report output directory is the default playwright-report/ — recommend moving to tests/reports/ or similar
 
 ---
 
 ## PROJECT STRUCTURE CHECKS
 
 Report if:
-- .spec.js files exist in tests/manual/ — must be .spec.ts
-- filter-tester.ts / filter-tester.js is missing from tests/utils/
-- goToNextPage() is missing from tests/utils/navigation.ts
-- goToPreviousPage() is missing from tests/utils/navigation.ts
-- navigateTo() does not call waitForLoadState("load") after page.goto()
-- navigateTo() builds absolute URLs via getBaseUrl() — this makes playwright.config baseURL a dead setting
-- tests/reports/ directory is absent
-- A debug or scratch spec file exists in tests/generated/ (no assertions, only console.log)
-- Duplicate feature coverage across tests/generated/ and tests/manual/ for the same feature
+- Spec files exist outside the tests/ directory tree
+- A spec file has no assertions — only console.log or empty test bodies (debug/scratch file)
+- Duplicate feature coverage across different test folders for the same feature
+- A tests/reports/ or equivalent output directory is absent from the project
 
 ---
 
 ## GITIGNORE CHECKS
 
 Report if any of these entries are missing:
-- .env  (root .env — not only .env.local variants)
-- reports/
+- .env
 - playwright-report/
 - test-results/
 
@@ -676,11 +670,11 @@ Report if any of these entries are missing:
 ## GLOBAL CONSISTENCY CHECKS
 
 Report:
-- Mixed import sources across spec files (@playwright/test in some, consoleGuard in others)
-- Mixed selector strategies (CSS class / XPath in some files, data-testid in others)
-- Mixed navigation patterns (raw page.goto() in some, navigateTo() in others)
+- Mixed import sources across spec files (some import from @playwright/test, others from a custom wrapper)
+- Mixed selector strategies (CSS class or XPath in some files, data-testid in others)
+- Mixed navigation patterns (raw page.goto() in some files, a helper in others)
 - Mixed file formats (.spec.js and .spec.ts coexist)
-- Same feature tested in both generated/ and manual/ with different strategies
+- Inconsistent timeout values across tests with no clear reason
 
 ---
 
@@ -690,10 +684,10 @@ Output ONLY issue blocks, then a summary line. No preamble, no explanation, no f
 
 Each issue EXACTLY like this:
 
-File: tests/generated/redirects.spec.ts
+File: tests/redirects.spec.ts
 Line: 17
-Issue: References project.redirects.js instead of project.redirects.csv
-Reason: The .js file does not exist — all redirect tests skip silently on every run.
+Issue: Hardcoded URL "http://localhost:3000/fr" used instead of a relative route
+Reason: Hardcoded URLs break portability across environments — use relative routes with baseURL in playwright.config.ts.
 Severity: ERROR
 
 Separate issues with a blank line.

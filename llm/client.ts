@@ -17,7 +17,7 @@ import type { Fixture } from "../tools/fileSystem.js"
 function assertApiKey(): void {
   if (!config.anthropic.apiKey) {
     throw new Error(
-      "ANTHROPIC_API_KEY is not set. Export it in your environment before running the agent."
+      "LLM_API_KEY is not set. Export it in your environment before running the agent."
     )
   }
 }

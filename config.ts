@@ -62,10 +62,10 @@ const appDir = path.relative(monorepoRoot, appRoot)
 
 export const config = {
   anthropic: {
-    apiKey: process.env.ANTHROPIC_API_KEY ?? "",
-    baseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
-    model: process.env.ANTHROPIC_MODEL ?? "anthropic/claude-sonnet-4-5",
-    maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS ?? "8192"),
+    apiKey: process.env.LLM_API_KEY ?? "",
+    baseUrl: process.env.LLM_BASE_URL ?? "https://openrouter.ai/api/v1",
+    model: process.env.LLM_MODEL ?? "anthropic/claude-sonnet-4-5",
+    maxTokens: parseInt(process.env.LLM_MAX_TOKENS ?? "8192"),
   },
   app: {
     root: appRoot,
@@ -74,7 +74,7 @@ export const config = {
   playwright: {
     configPath: path.join(appRoot, "playwright.config.ts"),
     fixturesDir: path.join(testsDir, "fixtures"),
-    generatedDir: path.join(testsDir, "generated"),
+    generatedDir: path.join(testsDir, "specs"),
     manualDir: path.join(testsDir, "manual"),
     utilsDir: path.join(testsDir, "utils"),
   },

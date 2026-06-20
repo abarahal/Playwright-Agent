@@ -103,11 +103,11 @@ program
 program
   .command("audit")
   .description("Audit all Playwright tests for bad practices, config issues, and structural problems")
-  .option("--scope <scope>", "Scope to scan: all | generated | manual (default: all)", "all")
+  .option("--scope <scope>", "Scope to scan: all | specs | manual (default: all)", "all")
   .action(async (opts: { scope?: string }) => {
-    const scope = (opts.scope ?? "all") as "all" | "generated" | "manual"
-    if (!["all", "generated", "manual"].includes(scope)) {
-      console.error(`❌ Invalid scope "${scope}". Use: all | generated | manual`)
+    const scope = (opts.scope ?? "all") as "all" | "specs" | "manual"
+    if (!["all", "specs", "manual"].includes(scope)) {
+      console.error(`❌ Invalid scope "${scope}". Use: all | specs | manual`)
       process.exit(1)
     }
     try {

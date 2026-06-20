@@ -23,7 +23,7 @@ export function runInitWorkflow(): void {
   // 1. Create required directories
   ensureDirs()
   console.log("  ✅ tests/fixtures/")
-  console.log("  ✅ tests/generated/")
+  console.log("  ✅ tests/specs/")
   console.log("  ✅ tests/manual/")
   console.log("")
 
@@ -59,9 +59,9 @@ export function runInitWorkflow(): void {
   console.log("Next steps:")
   console.log("")
   console.log("  1. Add to your .env.local:")
-  console.log("       ANTHROPIC_API_KEY=<your-openrouter-key>")
-  console.log("       OPENROUTER_BASE_URL=https://openrouter.ai/api/v1")
-  console.log("       ANTHROPIC_MODEL=deepseek/deepseek-chat:free")
+  console.log("       LLM_API_KEY=<your-api-key>")
+  console.log("       LLM_BASE_URL=https://openrouter.ai/api/v1")
+  console.log("       LLM_MODEL=Qwen/Qwen3.6-35B-A3B")
   console.log("")
   console.log("  2. Run: npx @abarahal/playwright-ai-agent generate")
   console.log("")

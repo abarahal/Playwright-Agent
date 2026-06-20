@@ -22,7 +22,7 @@ function addFile(sections: string[], label: string, filePath: string, maxLines =
   sections.push(`=== ${label} ===\n${body}`)
 }
 
-function buildFilesContext(scope: "all" | "generated" | "manual"): { context: string; fileCount: number } {
+function buildFilesContext(): { context: string; fileCount: number } {
   const sections: string[] = []
 
   // Always include config + gitignore + utils
@@ -38,21 +38,25 @@ function buildFilesContext(scope: "all" | "generated" | "manual"): { context: st
     if (filePath) addFile(sections, `UTIL: tests/utils/${name}.${ext}`, filePath, 100)
   }
 
-  // Spec files by scope
-  const dirs: Array<{ dir: string; label: string }> = []
-  if (scope === "all" || scope === "generated") dirs.push({ dir: config.playwright.generatedDir, label: "generated" })
-  if (scope === "all" || scope === "manual") dirs.push({ dir: config.playwright.manualDir, label: "manual" })
-
+  // Spec files — recursive scan of tests/ directory
+  const testsDir = path.join(config.app.root, "tests")
   let specCount = 0
-  for (const { dir, label } of dirs) {
-    if (!fs.existsSync(dir)) continue
-    for (const f of fs.readdirSync(dir).sort()) {
-      if (!f.endsWith(".spec.ts") && !f.endsWith(".spec.js")) continue
-      const filePath = path.join(dir, f)
-      addFile(sections, `SPEC: tests/${label}/${f}`, filePath, 250)
-      specCount++
+
+  function scanSpecs(dir: string): void {
+    if (!fs.existsSync(dir)) return
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const fullPath = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        scanSpecs(fullPath)
+      } else if (entry.name.endsWith(".spec.ts") || entry.name.endsWith(".spec.js")) {
+        const rel = path.relative(config.app.root, fullPath)
+        addFile(sections, `SPEC: ${rel}`, fullPath, 250)
+        specCount++
+      }
     }
   }
+
+  scanSpecs(testsDir)
 
   return { context: sections.join("\n\n"), fileCount: specCount }
 }
@@ -71,11 +75,11 @@ function parseSummary(report: string): { errors: number; warnings: number } {
 
 // ─── MAIN WORKFLOW ─────────────────────────────────────────────────────────────
 
-export async function runAuditWorkflow(scope: "all" | "generated" | "manual" = "all"): Promise<AuditResult> {
+export async function runAuditWorkflow(scope: "all" | "specs" | "manual" = "all"): Promise<AuditResult> {
   console.log(`\n🔍 Playwright Test Suite Audit — scope: ${scope}\n`)
 
   console.log("📂 Collecting files...")
-  const { context, fileCount } = buildFilesContext(scope)
+  const { context, fileCount } = buildFilesContext()
 
   console.log(`🤖 Sending ${fileCount} spec file(s) + config + utils to Claude for analysis...`)
   process.stdout.write("   Waiting for audit report")

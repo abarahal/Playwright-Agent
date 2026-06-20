@@ -1,6 +1,6 @@
 {
   "name": "@abarahal/playwright-ai-agent",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "AI Testing Agent for Next.js — generates and fixes Playwright tests using Claude via OpenRouter",
   "type": "module",
   "bin": {
