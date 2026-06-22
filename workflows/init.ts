@@ -60,7 +60,7 @@ export function runInitWorkflow(): void {
   console.log("")
   console.log("  1. Add to your .env.local:")
   console.log("       LLM_API_KEY=<your-api-key>")
-  console.log("       LLM_BASE_URL=https://openrouter.ai/api/v1")
+  console.log("       LLM_BASE_URL=http://<server-ip>:<port>/v1")
   console.log("       LLM_MODEL=Qwen/Qwen3.6-35B-A3B")
   console.log("")
   console.log("  2. Run: npx @abarahal/playwright-ai-agent generate")
